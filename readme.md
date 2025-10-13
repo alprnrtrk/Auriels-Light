@@ -2,7 +2,7 @@
   <img src="./logo.png" alt="Star & Light Logo" width="180"/>
 </p>
 
-<h1 align="center">✨ My Vite WordPress Theme ✨</h1>
+<h1 align="center">✨ Auriels Light ✨</h1>
 
 <p align="center">
   A modern, fast, and minimal WordPress theme powered by <b>Vite.js</b>.<br/>
