@@ -1,5 +1,6 @@
 {
-	"name": "vite-wordpress-theme",
+	"name": "auriels-light",
+	"description": "Auriels Light – modern WordPress theme scaffold powered by Vite.",
 	"private": true,
 	"version": "1.0.0",
 	"type": "module",
@@ -10,11 +11,16 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",
+		"autoprefixer": "10.4.20",
+		"postcss": "8.4.49",
 		"rimraf": "6.0.1",
 		"sass": "1.93.2",
+		"tailwindcss": "3.4.13",
 		"vite": "7.1.7"
 	},
 	"dependencies": {
-		"bootstrap": "5.3.8"
+		"gsap": "3.12.5",
+		"swiper": "11.1.4"
 	}
 }
+

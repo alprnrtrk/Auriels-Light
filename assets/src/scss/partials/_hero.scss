@@ -1,0 +1,7 @@
+[data-partial='hero'] {
+	@apply text-white;
+
+	a {
+		@apply transition hover:text-brand/80;
+	}
+}

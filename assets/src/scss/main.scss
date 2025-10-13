@@ -1,27 +1,32 @@
+@use 'components/buttons';
+@use 'partials/header';
+@use 'partials/hero';
+@use 'partials/features';
+@use 'partials/cta';
+@use 'pages/contact';
 
-// abstracts
-@import "abstracts/variables";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-// vendors
-@import "bootstrap";
+@layer base {
+	body {
+		@apply bg-slate-50 text-slate-800;
+	}
+}
 
-// vendors overrides
-// @import "vendors/myvendor";
+@layer components {
+	.section-heading {
+		@apply text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl;
+	}
+}
 
-// base
-@import "base/fonts",
-        "base/base";
+@layer utilities {
+	[data-template='page-about'] .about-highlight {
+		@apply border-brand/30 bg-brand/5;
+	}
 
-// layout
-@import "layout/header",
-        "layout/footer",
-        "layout/forms",
-        "layout/grid";
-
-// components
-@import "components/buttons",
-        "components/modal";
-
-// pages
-@import "pages/front-page",
-        "pages/page";
+	[data-template='page-contact'] .contact-form {
+		@apply border border-slate-200;
+	}
+}

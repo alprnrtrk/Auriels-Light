@@ -1,5 +1,6 @@
 {
-  "name": "oguilleux/vitewptheme",
-  "description": "Blank Theme using Vite.js",
+  "name": "aurielslight/theme",
+  "description": "Auriels Light WordPress theme scaffold wired to Vite and Tailwind.",
   "type": "wordpress-theme"
 }
+
