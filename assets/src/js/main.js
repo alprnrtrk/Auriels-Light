@@ -1,13 +1,22 @@
-import initPartials from './partials';
-import initPages from './pages';
+const initHeroPartial = () => {
+	const heroSections = document.querySelectorAll('[data-hero-partial]');
 
-/**
- * Entry point for theme scripts.
- *
- * Runs partial controllers first (they gracefully exit when their section is missing),
- * then executes page/template specific modules.
- */
+	if (!heroSections.length) {
+		return;
+	}
+
+	import('./partials/hero-partial.js')
+		.then(({ default: bootHeroPartial }) => {
+			heroSections.forEach((node) => {
+				bootHeroPartial(node);
+			});
+		})
+		.catch((error) => {
+			// eslint-disable-next-line no-console
+			console.error('Failed to load hero partial script.', error);
+		});
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-	initPartials();
-	initPages();
+	initHeroPartial();
 });

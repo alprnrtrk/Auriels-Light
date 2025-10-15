@@ -1,115 +1,117 @@
 <?php
+declare(strict_types=1);
 
-/**
- * Minimal Vite integration for the theme.
- *
- * Keeps the dev server workflow while staying out of the way until we add code.
- */
+if ( ! defined( 'AURIEL_VITE_DIST_DIR' ) ) {
+	define( 'AURIEL_VITE_DIST_DIR', 'assets/dist' );
+}
 
-defined('AURIELSLIGHT_DIST_DIR') || define('AURIELSLIGHT_DIST_DIR', 'assets/dist');
-defined('AURIELSLIGHT_VITE_SERVER') || define('AURIELSLIGHT_VITE_SERVER', 'http://localhost:5173');
+if ( ! defined( 'AURIEL_VITE_DIST_URI' ) ) {
+	define(
+		'AURIEL_VITE_DIST_URI',
+		trailingslashit( get_template_directory_uri() ) . AURIEL_VITE_DIST_DIR
+	);
+}
 
-/**
- * Returns the decoded Vite manifest when it exists.
- *
- * @return array|false
- */
-function aurielslight_get_vite_manifest() {
-	static $manifest = null;
+if ( ! defined( 'AURIEL_VITE_DIST_PATH' ) ) {
+	define(
+		'AURIEL_VITE_DIST_PATH',
+		trailingslashit( get_template_directory() ) . AURIEL_VITE_DIST_DIR
+	);
+}
 
-	if ($manifest !== null) {
-		return $manifest;
-	}
+if ( ! defined( 'AURIEL_VITE_SERVER' ) ) {
+	define( 'AURIEL_VITE_SERVER', 'http://localhost:5173' );
+}
 
-	$manifest_path = get_template_directory() . '/' . AURIELSLIGHT_DIST_DIR . '/.vite/manifest.json';
+if ( ! defined( 'AURIEL_VITE_SCRIPT_HANDLE' ) ) {
+	define( 'AURIEL_VITE_SCRIPT_HANDLE', 'auriel-main' );
+}
 
-	if (!file_exists($manifest_path)) {
-		$manifest = false;
+if ( ! defined( 'AURIEL_VITE_STYLE_HANDLE' ) ) {
+	define( 'AURIEL_VITE_STYLE_HANDLE', 'auriel-main-style' );
+}
 
-		return $manifest;
-	}
-
-	$manifest = json_decode(file_get_contents($manifest_path), true);
-
-	return $manifest;
+if ( ! defined( 'AURIEL_VITE_IS_BUILD' ) ) {
+	define(
+		'AURIEL_VITE_IS_BUILD',
+		file_exists( AURIEL_VITE_DIST_PATH . '/.vite/manifest.json' )
+	);
 }
 
 /**
- * Whether the theme is using the Vite production build.
- *
- * @return bool
+ * Register and enqueue the Vite-powered assets.
  */
-function aurielslight_vite_is_build() {
-	return is_array(aurielslight_get_vite_manifest());
-}
+function auriel_enqueue_vite_assets(): void {
+	$js_entries    = array( AURIEL_VITE_SCRIPT_HANDLE => 'main.js' );
+	$style_entries = array( AURIEL_VITE_STYLE_HANDLE => 'main.scss' );
+	$manifest     = array();
 
-/**
- * Enqueue the main Vite assets.
- */
-function aurielslight_enqueue_vite_assets() {
-	$manifest = aurielslight_get_vite_manifest();
-	$theme_uri = get_template_directory_uri();
+	if ( AURIEL_VITE_IS_BUILD ) {
+		$manifest_path = AURIEL_VITE_DIST_PATH . '/.vite/manifest.json';
+		$manifest      = json_decode( file_get_contents( $manifest_path ), true );
 
-	$script_handle = 'aurielslight-app';
-	$style_handle = 'aurielslight-style';
-
-	$style_src = null;
-
-	if ($manifest && isset($manifest['assets/src/js/main.js'])) {
-		$entry = $manifest['assets/src/js/main.js'];
-		$script_src = $theme_uri . '/' . AURIELSLIGHT_DIST_DIR . '/' . $entry['file'];
-
-		if (!empty($entry['css'][0])) {
-			$style_src = $theme_uri . '/' . AURIELSLIGHT_DIST_DIR . '/' . $entry['css'][0];
-		} elseif (isset($manifest['assets/src/scss/main.scss'])) {
-			$style_entry = $manifest['assets/src/scss/main.scss'];
-			$style_src = $theme_uri . '/' . AURIELSLIGHT_DIST_DIR . '/' . $style_entry['file'];
+		if ( ! is_array( $manifest ) ) {
+			$manifest = array();
 		}
-	} else {
-		$script_src = AURIELSLIGHT_VITE_SERVER . '/assets/src/js/main.js';
-		$style_src = AURIELSLIGHT_VITE_SERVER . '/assets/src/scss/main.scss';
 	}
 
-	if ($style_src) {
-		wp_enqueue_style($style_handle, $style_src, array(), null);
+	foreach ( $js_entries as $handle => $file ) {
+		$dev_uri = sprintf( '%s/assets/src/js/%s', AURIEL_VITE_SERVER, $file );
+		$uri     = $dev_uri;
+
+		if ( AURIEL_VITE_IS_BUILD ) {
+			$key = sprintf( 'assets/src/js/%s', $file );
+			if ( isset( $manifest[ $key ]['file'] ) ) {
+				$uri = AURIEL_VITE_DIST_URI . '/' . $manifest[ $key ]['file'];
+			}
+		}
+
+		wp_enqueue_script( $handle, $uri, array(), null, true );
 	}
 
-	wp_enqueue_script($script_handle, $script_src, array(), null, true);
+	foreach ( $style_entries as $handle => $file ) {
+		$dev_uri = sprintf( '%s/assets/src/scss/%s', AURIEL_VITE_SERVER, $file );
+		$uri     = $dev_uri;
+
+		if ( AURIEL_VITE_IS_BUILD ) {
+			$key = sprintf( 'assets/src/scss/%s', $file );
+			if ( isset( $manifest[ $key ]['file'] ) ) {
+				$uri = AURIEL_VITE_DIST_URI . '/' . $manifest[ $key ]['file'];
+			}
+		}
+
+		wp_enqueue_style( $handle, $uri, array(), null );
+	}
 }
-
-add_action('wp_enqueue_scripts', 'aurielslight_enqueue_vite_assets', 20);
+add_action( 'wp_enqueue_scripts', 'auriel_enqueue_vite_assets', 100 );
 
 /**
- * Inject the Vite client in development so HMR works with PHP templates.
+ * Inject the Vite client while running in development mode.
  */
-function aurielslight_vite_client() {
-	if (aurielslight_vite_is_build()) {
+function auriel_vite_client_script(): void {
+	if ( AURIEL_VITE_IS_BUILD ) {
 		return;
 	}
 
-	echo '<script type="module" src="' . esc_url(AURIELSLIGHT_VITE_SERVER . '/@vite/client') . '" crossorigin></script>';
+	printf(
+		'<script type="module" crossorigin src="%s/@vite/client"></script>' . PHP_EOL,
+		esc_url( AURIEL_VITE_SERVER )
+	);
 }
-
-add_action('wp_head', 'aurielslight_vite_client');
+add_action( 'wp_head', 'auriel_vite_client_script' );
 
 /**
- * Ensure scripts loaded from the dev server use type="module".
- *
- * @param string $tag
- * @param string $handle
- * @param string $src
- *
- * @return string
+ * Ensure Vite scripts are treated as ES modules during development.
  */
-function aurielslight_vite_script_tag($tag, $handle, $src) {
-	if ('aurielslight-app' !== $handle || aurielslight_vite_is_build()) {
-		return $tag;
+function auriel_vite_module_tag( string $tag, string $handle, string $src ): string {
+	if ( AURIEL_VITE_SCRIPT_HANDLE === $handle && ! AURIEL_VITE_IS_BUILD ) {
+		return sprintf(
+			'<script type="module" src="%s" crossorigin></script>',
+			esc_url( $src )
+		);
 	}
 
-	return '<script type="module" src="' . esc_url($src) . '" crossorigin></script>';
+	return $tag;
 }
 
-add_filter('script_loader_tag', 'aurielslight_vite_script_tag', 10, 3);
-
-
-
+add_filter( 'script_loader_tag', 'auriel_vite_module_tag', 10, 3 );
