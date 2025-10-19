@@ -9,11 +9,11 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { glob } from 'glob';
+import { fileURLToPath } from 'node:url';
 
-// Get the relative path of the vite.config.js file for the alias
-const fullPath = import.meta.url.slice(0, import.meta.url.lastIndexOf('/'));
-const getWpContentIndex = fullPath.indexOf('wp-content');
-const wpContentPath = fullPath.slice(getWpContentIndex);
+const themeRoot = fileURLToPath(new URL('.', import.meta.url));
+const distRoot = resolve(themeRoot, 'assets/dist');
+const scssGlob = 'assets/src/scss/[!_]*.scss';
 
 export default defineConfig({
 	base: './',
@@ -36,48 +36,72 @@ export default defineConfig({
 		// emit manifest so PHP can find the hashed files
 		manifest: true,
 
-		outDir: resolve(__dirname, 'assets/dist/'),
+		outDir: distRoot,
 
 		// don't base64 images
 		assetsInlineLimit: 0,
 
 		rollupOptions: {
 			input: {
-				'js/main': resolve(`${__dirname}/assets/src/js/main.js`),
-				...(() =>
-					glob
-						.sync(resolve(__dirname, 'assets/src/scss/[!_]*.scss'))
-						.reduce((entries, filename) => {
-							const [, name] = filename.match(/([^/]+)\.scss$/);
-							return { ...entries, [name]: filename };
-						}, {}))(),
+				'js/main': resolve(themeRoot, 'assets/src/js/main.js'),
+				...(() => {
+					const scssFiles = glob.sync(scssGlob, {
+						cwd: themeRoot,
+						windowsPathsNoEscape: true,
+					});
+
+					return scssFiles.reduce((entries, relativePath) => {
+						const normalized = relativePath.replace(/\\/g, '/');
+						const match = normalized.match(/([^/]+)\.scss$/);
+
+						if (!match) {
+							return entries;
+						}
+
+						const [, name] = match;
+
+						return {
+							...entries,
+							[name]: resolve(themeRoot, relativePath),
+						};
+					}, {});
+				})(),
 			},
 			output: {
-				entryFileNames: '[name]-[hash].js',
-				chunkFileNames: '[name]-[hash].js',
+				entryFileNames: ({ name }) => {
+					const normalizedName = name.replace(/^js\//, '');
+					return `js/${normalizedName}.js`;
+				},
+				chunkFileNames: ({ name }) => {
+					const normalizedName = name.replace(/^js\//, '');
+					return `js/${normalizedName}.js`;
+				},
 				assetFileNames: (assetInfo) => {
-					const extType = assetInfo.name.split('.');
+					const extSegments = assetInfo.name.split('.');
 
-					// group fonts in a folder
-					if (
-						extType[1] === 'woff' ||
-						extType[1] === 'woff2' ||
-						extType[1] === 'ttf'
-					) {
-						return 'fonts/[name]-[hash].[ext]';
+					if (extSegments.length < 2) {
+						return '[name].[ext]';
 					}
 
-					// group images in a folder
-					if (
-						extType[1] === 'gif' ||
-						extType[1] === 'jpg' ||
-						extType[1] === 'jpeg' ||
-						extType[1] === 'png'
-					) {
-						return 'img/[name]-[hash].[ext]';
+					const ext = extSegments.pop()?.toLowerCase();
+
+					if (!ext) {
+						return '[name].[ext]';
 					}
 
-					return '[ext]/[name]-[hash].[ext]';
+					if (['woff', 'woff2', 'ttf', 'otf', 'eot'].includes(ext)) {
+						return 'fonts/[name].[ext]';
+					}
+
+					if (['gif', 'jpg', 'jpeg', 'png', 'svg', 'webp', 'avif'].includes(ext)) {
+						return 'img/[name].[ext]';
+					}
+
+					if (ext === 'css') {
+						return 'css/[name].[ext]';
+					}
+
+					return `${ext}/[name].[ext]`;
 				},
 			},
 		},
@@ -92,14 +116,5 @@ export default defineConfig({
 		// We need a strict port to match on PHP side.
 		strictPort: true,
 		port: 5173,
-	},
-
-	resolve: {
-		alias: {
-			'@':
-				process.env.NODE_ENV === 'development'
-					? resolve(`${wpContentPath}/static`)
-					: '/static',
-		},
 	},
 });

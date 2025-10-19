@@ -1,17 +1,23 @@
-</div><!-- #content -->
-
-<footer id="colophon" class="site-footer bg-slate-900 py-10 text-slate-300">
-  <div class="container mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 text-center sm:flex-row sm:justify-between sm:text-left">
-    <p class="text-sm">&copy; <?php echo esc_html( date_i18n( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?>. All rights reserved.</p>
-    <p class="text-sm">
-      Built with Tailwind, Vite, GSAP &amp; Swiper.
-    </p>
+<footer id="colophon" class="site-footer border-t border-text/10 bg-white/70 backdrop-blur">
+  <div class="site-footer__inner mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-6 text-sm text-text/70 md:flex-row md:justify-between">
+    <nav class="footer-navigation" aria-label="<?php esc_attr_e('Footer menu', AURIEL_THEME_TEXT_DOMAIN); ?>">
+      <?php
+      auriel_theme_render_menu(
+        'footer',
+        array(
+          'menu_class' => 'footer-menu flex flex-wrap items-center justify-center gap-4 md:justify-start',
+          'menu_id' => 'footer-menu',
+          'depth' => 1,
+        )
+      );
+      ?>
+    </nav>
+    <div class="site-info text-center md:text-right">
+      &copy; <?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?>.
+    </div>
   </div>
-</footer><!-- #colophon -->
-</div><!-- #page -->
-
+</footer>
 <?php wp_footer(); ?>
-
 </body>
 
 </html>

@@ -1,66 +1,103 @@
 <?php
+declare(strict_types=1);
 
-require get_template_directory() . '/inc/helpers.php';
-require get_template_directory() . '/inc/vite.php';
-require get_template_directory() . '/inc/acf.php';
-
-/**
- * Basic theme setup so WordPress can render pages without extra opinions.
- */
-function aurielslight_setup() {
-	add_theme_support('title-tag');
-	add_theme_support('post-thumbnails');
-
-	register_nav_menus(
-		array(
-			'primary' => __('Primary Menu', 'aurielslight'),
-		)
-	);
-
-	load_theme_textdomain('aurielslight', get_template_directory() . '/languages');
+if (!defined('AURIEL_THEME_TEXT_DOMAIN')) {
+  define('AURIEL_THEME_TEXT_DOMAIN', 'auriel-theme');
 }
 
-add_action('after_setup_theme', 'aurielslight_setup');
-
-/**
- * Returns a short handle for the current template or view.
- *
- * Used to attach data attributes for page-specific assets.
- *
- * @return string
- */
-function aurielslight_get_template_context() {
-	if (is_front_page()) {
-		return 'front-page';
-	}
-
-	$template_slug = get_page_template_slug();
-
-	if ($template_slug) {
-		$template_slug = str_replace(array('templates/', '.php'), '', $template_slug);
-
-		return sanitize_title($template_slug);
-	}
-
-	if (is_home()) {
-		return 'blog';
-	}
-
-	if (is_page()) {
-		$page = get_post(get_queried_object_id());
-
-		return $page ? 'page-' . sanitize_title($page->post_name) : 'page';
-	}
-
-	if (is_single()) {
-		return 'single-' . get_post_type();
-	}
-
-	if (is_archive()) {
-		return 'archive';
-	}
-
-	return 'default';
+if (!defined('AURIEL_THEME_SETTINGS_PAGE_SLUG')) {
+  define('AURIEL_THEME_SETTINGS_PAGE_SLUG', 'auriel-theme-settings');
 }
 
+require_once get_template_directory() . '/inc/vite.php';
+require_once get_template_directory() . '/inc/theme-options.php';
+require_once get_template_directory() . '/inc/partial-fields.php';
 
+function auriel_theme_setup(): void
+{
+  add_theme_support('title-tag');
+  add_theme_support('post-thumbnails');
+  add_theme_support('menus');
+  add_theme_support(
+    'html5',
+    array(
+      'search-form',
+      'comment-form',
+      'comment-list',
+      'gallery',
+      'caption',
+      'style',
+      'script',
+      'navigation-widgets',
+    )
+  );
+
+  add_theme_support(
+    'custom-logo',
+    array(
+      'height' => 48,
+      'width' => 48,
+      'flex-height' => true,
+      'flex-width' => true,
+    )
+  );
+
+  register_nav_menus(
+    array(
+      'primary' => __('Primary Menu', AURIEL_THEME_TEXT_DOMAIN),
+      'footer' => __('Footer Menu', AURIEL_THEME_TEXT_DOMAIN),
+    )
+  );
+}
+add_action('after_setup_theme', 'auriel_theme_setup');
+
+/**
+ * Render a navigation menu or a page list fallback.
+ *
+ * @param string $location Registered menu location slug.
+ * @param array<string,mixed> $args Optional overrides for wp_nav_menu.
+ */
+function auriel_theme_render_menu(string $location, array $args = array()): void
+{
+  $defaults = array(
+    'theme_location' => $location,
+    'container' => '',
+    'menu_id' => $location . '-menu',
+    'menu_class' => 'menu',
+    'depth' => 2,
+    'fallback_cb' => false,
+  );
+
+  $args = wp_parse_args($args, $defaults);
+
+  if (has_nav_menu($location)) {
+    wp_nav_menu($args);
+    return;
+  }
+
+  $pages = get_pages(
+    array(
+      'sort_column' => 'menu_order',
+      'post_status' => 'publish',
+    )
+  );
+
+  if (empty($pages)) {
+    return;
+  }
+
+  $menu_class = isset($args['menu_class']) ? (string) $args['menu_class'] : 'flex gap-4';
+  $menu_id = isset($args['menu_id']) ? (string) $args['menu_id'] : '';
+
+  echo '<ul';
+  if ('' !== $menu_id) {
+    echo ' id="' . esc_attr($menu_id) . '"';
+  }
+  echo ' class="' . esc_attr($menu_class) . '">';
+
+  foreach ($pages as $page) {
+    echo '<li class="menu-item hover:text-primary transition"><a href="' . esc_url(get_permalink($page)) . '">' . esc_html(get_the_title($page)) . '</a></li>';
+  }
+
+  echo '</ul>';
+}
